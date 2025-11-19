@@ -199,6 +199,7 @@ function ww() {
 ```
 
 3. 启动游戏可以不经过 steam，这样会更快一些，可以参考我的做法:
+
 (配置: Archlinux, Hyprland, Linux zen core, GE-Proton10-25)
 
 * 首先，创建一个启动脚本，例如:
@@ -258,7 +259,7 @@ StartupNotify=true
 StartupWMClass=steam_proton
 ```
 
-配置好后，之间用应用菜单即可启动，无需启动 steam.
+配置好后，直接用应用菜单即可启动，无需启动 steam.
 
 ### 致谢
 
