@@ -261,6 +261,22 @@ StartupWMClass=steam_proton
 
 配置好后，直接用应用菜单即可启动，无需启动 steam.
 
+如果你也是hyprland,那还可以参考我的配置(~/.config/hypr/hyprland.conf)，让鸣潮启动自动平铺，并且隐藏登陆页面的不可见窗口
+
+```conf
+# 精确匹配：当 class 为 steam_proton 且 标题包含"鸣潮"时，强制平铺
+windowrulev2 = tile, class:^(steam_proton)$, title:^(鸣潮.*)$
+# 隐藏鸣潮登陆框的不可见窗口
+windowrulev2 = float, class:^(steam_proton)$, title:^$
+windowrulev2 = noinitialfocus, class:^(steam_proton)$, title:^$
+windowrulev2 = noblur, class:^(steam_proton)$, title:^$
+windowrulev2 = noshadow, class:^(steam_proton)$, title:^$
+windowrulev2 = noanim, class:^(steam_proton)$, title:^$
+windowrulev2 = opacity 0 override 0 override, class:^(steam_proton)$, title:^$
+windowrulev2 = move 100% 100%, class:^(steam_proton)$, title:^$
+windowrulev2 = pin, class:^(steam_proton)$, title:^$
+```
+
 ### 致谢
 
 感谢以下项目的灵感和工作！
