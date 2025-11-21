@@ -104,7 +104,7 @@ ww download cn
     如果你还没有游戏，先下载一个完整的（例如国服）：
 
     ```bash
-    ww download cn --path "/path/to/Game"
+    ww --path "/path/to/Game" download cn
     ```
 
 2. **“烘焙”其他服务器**：
@@ -124,12 +124,12 @@ ww download cn
 
 本工具仅负责文件管理。启动游戏推荐使用 Steam + Proton。
 
-你可以参考项目中的 `run_ww.sh` 脚本并添加 .desktop 文件绕过 Steam 启动，或者按照以下步骤通过 Steam 启动：
+如果你熟悉 Linux，你可以参考项目中的 `run_ww.sh` 脚本并添加 .desktop 文件绕过 Steam 启动，或者按照以下步骤通过 Steam 启动：
 
 1. **Steam 设置**：
 
-      * 添加“非 Steam 游戏”，指向 `Client-Win64-Shipping.exe`。
-      * 在兼容性中强制使用 `GE-Proton` (推荐 GE-Proton 9.x 或 10.x)。
+      * 添加“非 Steam 游戏”，指向 `/Client/Binaries/Win64/Client-Win64-Shipping.exe`。
+      * 在兼容性中强制使用 `GE-Proton` (参考项目` LutheringLaves` 下载最新 GE-Proton)。
 
 2. **启动参数**：
     在 Steam 启动选项中添加：
