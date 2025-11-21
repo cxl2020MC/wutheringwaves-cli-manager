@@ -7,15 +7,18 @@ import hashlib
 import json
 import gzip
 import io
-import argparse
 import logging
 from pathlib import Path
 from urllib.request import urlopen, Request, HTTPError
 from urllib.parse import urljoin, quote
+from enum import Enum
+from typing import Optional
+from typing_extensions import Annotated
+
+import typer
 from tqdm import tqdm
 
 # --- 配置 ---
-
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
@@ -63,7 +66,6 @@ SERVER_DIFF_FILES = {
         "Client/Content/Paks/pakchunk1-Kuro-Win64-Shipping.pak"
     ]
 }
-
 
 def load_app_config():
     if not CONFIG_FILE.exists():
@@ -422,14 +424,24 @@ class WDLancher:
         self.update_localVersion(self.server_type, self.current_version)
         self.save_md5_cache() 
 
-# --- CLI 命令处理 ---
+# --- Typer App 初始化 ---
+app = typer.Typer(
+    help="鸣潮 (Wuthering Waves) 命令行下载/切换管理器", 
+    add_completion=False,
+    no_args_is_help=True
+)
 
+class ServerType(str, Enum):
+    cn = "cn"
+    global_server = "global"
+    bilibili = "bilibili"
+
+# --- CLI 辅助函数 ---
 def get_current_server(game_folder_path: Path):
     if not game_folder_path:
         return None, None
     config_path = game_folder_path / "launcherDownloadConfig.json"
     if not config_path.exists():
-        logger.warning(f"{config_path} 未找到. 无法检测当前服务器。")
         return None, None
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
@@ -442,43 +454,96 @@ def get_current_server(game_folder_path: Path):
         logger.error(f"读取 {config_path} 失败: {e}")
         return None, None
 
-def handle_status(args):
-    logger.info("--- 状态检查 ---")
-    server, version = get_current_server(args.path)
-    if server:
-        print(f"  游戏目录: {args.path.resolve()}")
-        print(f"  当前服务器: {server}")
-        print(f"  当前版本: {version}")
-    else:
-        print(f"  未在 {args.path} 中找到有效的游戏配置。")
+# --- Typer 命令定义 ---
 
-def handle_sync(args):
+@app.callback()
+def main(
+    ctx: typer.Context,
+    path: Annotated[
+        Optional[Path], 
+        typer.Option(
+            "--path", "-p",
+            help="游戏《Wuthering Waves Game》目录路径。\n(使用一次后将自动保存)",
+            show_default=False
+        )
+    ] = None
+):
+    """
+    鸣潮 (Wuthering Waves) 命令行下载/切换管理器
+    """
+    app_config = load_app_config()
+    default_path = app_config.get("default_path")
+    
+    final_path = path if path else (Path(default_path) if default_path else None)
+    
+    if path and (not default_path or str(path.resolve()) != default_path):
+        logger.info(f"设置新的默认游戏路径为: {path.resolve()}")
+        app_config["default_path"] = str(path.resolve())
+        save_app_config(app_config)
+
+    ctx.ensure_object(dict)
+    ctx.obj["game_path"] = final_path
+    ctx.obj["app_config"] = app_config
+
+    # 修复: 移除 typer.colors 用法，改为直接使用字符串 "red"
+    if ctx.invoked_subcommand != "clear-path" and not final_path:
+        typer.secho("错误: 缺少游戏路径。", fg="red")
+        typer.echo("请至少使用 -p /path/to/game 运行一次以设置默认路径。")
+        raise typer.Exit(code=1)
+
+@app.command()
+def status(ctx: typer.Context):
+    """检查当前游戏目录的服务器类型和版本"""
+    game_path = ctx.obj["game_path"]
+    logger.info("--- 状态检查 ---")
+    
+    # 增强检查: 如果目录不存在，不要只报错，给个提示
+    if not game_path.exists():
+        typer.secho(f"警告: 目录 {game_path} 不存在", fg="yellow")
+        return
+
+    server, version = get_current_server(game_path)
+    if server:
+        typer.echo(f"  游戏目录: {game_path.resolve()}")
+        typer.echo(f"  当前服务器: {server}")
+        typer.echo(f"  当前版本: {version}")
+    else:
+        typer.echo(f"  未在 {game_path} 中找到有效的游戏配置(launcherDownloadConfig.json)。")
+
+@app.command()
+def sync(ctx: typer.Context):
+    """[慢速] 校验当前服务器的文件，下载缺失/损坏文件，并烘焙差异文件 (修复/更新)"""
+    game_path = ctx.obj["game_path"]
     logger.info("--- 同步当前服务器 (慢速/修复) ---")
-    server, _ = get_current_server(args.path)
+    
+    server, _ = get_current_server(game_path)
     if not server or server == "unknown":
         logger.error("无法确定当前服务器类型。请先使用 'download' 或 'checkout'。")
-        return
+        raise typer.Exit(code=1)
         
     logger.info(f"检测到当前服务器为: {server}。开始同步...")
-    launcher = WDLancher(args.path, server)
+    launcher = WDLancher(game_path, server)
     launcher.sync_gamefile()
 
-def handle_checkout(args):
-    """(checkout) 快速切换逻辑"""
-    logger.info(f"--- 快速切换服务器 ---")
-    target_server = args.server
-    game_path = args.path
+@app.command()
+def checkout(
+    ctx: typer.Context,
+    server: Annotated[ServerType, typer.Argument(help="要切换到的目标服务器")],
+    force_sync: Annotated[bool, typer.Option("--force-sync", help="切换后立即强制执行 sync")] = False
+):
+    """[快速] 立即切换到另一个服务器 (仅重命名差异文件)"""
+    game_path = ctx.obj["game_path"]
+    target_server = server.value
     
-    if target_server not in SERVER_CONFIGS:
-        logger.error(f"无效的服务器: {target_server}. 可选: {list(SERVER_CONFIGS.keys())}")
-        return
+    logger.info(f"--- 快速切换服务器 ---")
     
     current_server, current_version = get_current_server(game_path)
     if current_server == target_server:
         logger.warning(f"当前已经是 {target_server} 服。")
-        if args.force_sync:
+        if force_sync:
             logger.info("强制执行 'sync'...")
-            handle_sync(args)
+            launcher = WDLancher(game_path, target_server)
+            launcher.sync_gamefile()
         return
     
     logger.info(f"正在从 {current_server} 切换到 {target_server}...")
@@ -516,9 +581,13 @@ def handle_checkout(args):
             missing_files = True
 
     # 3. 更新配置文件
-    version_to_write = current_version if current_version else "unknown" 
-    temp_launcher = WDLancher(game_path, target_server) 
-    temp_launcher.update_localVersion(target_server, version_to_write)
+    version_to_write = current_version if current_version else "unknown"
+    try:
+        temp_launcher = WDLancher(game_path, target_server) 
+        temp_launcher.update_localVersion(target_server, version_to_write)
+    except SystemExit:
+        logger.warning("无法连接服务器 API，尝试离线更新版本文件...")
+        pass
     
     if missing_files:
         logger.warning("--- 切换完成，但检测到文件缺失 ---")
@@ -526,30 +595,36 @@ def handle_checkout(args):
     else:
         logger.info("--- 切换完成 ---")
 
-    # 确保 --force-sync 总是被检查
-    if args.force_sync:
+    if force_sync:
         logger.info("强制执行 'sync'...")
-        handle_sync(args)
+        launcher = WDLancher(game_path, target_server)
+        launcher.sync_gamefile()
     elif missing_files:
         logger.warning(f"请立即运行 'sync' 命令来下载缺失文件:")
-        print(f"\n{sys.argv[0]} -p \"{game_path}\" sync\n") # 使用 sys.argv[0] (别名)
+        typer.echo(f"\nww sync\n")
 
-def handle_download(args):
+@app.command()
+def download(
+    ctx: typer.Context,
+    server: Annotated[ServerType, typer.Argument(help="要下载的目标服务器")]
+):
+    """[慢速] 下载一个全新的、完整的服务器客户端 (会执行 sync)"""
+    game_path = ctx.obj["game_path"]
+    target_server = server.value
+    
     logger.info("--- 下载完整游戏 (慢速) ---")
-    target_server = args.server
-    if target_server not in SERVER_CONFIGS:
-        logger.error(f"无效的服务器: {target_server}. 可选: {list(SERVER_CONFIGS.keys())}")
-        return
+    logger.warning(f"将要下载 {target_server} 服的完整客户端到 {game_path}")
     
-    logger.warning(f"将要下载 {target_server} 服的完整客户端到 {args.path}")
-    
-    launcher = WDLancher(args.path, target_server)
+    launcher = WDLancher(game_path, target_server)
     launcher.download_game()
     logger.info("下载完成。现在开始强制校验一遍...")
     launcher.sync_gamefile() 
     logger.info(f"完整客户端 ( {target_server} ) 下载并校验完成。")
 
-def handle_clear_path(args, app_config):
+@app.command("clear-path")
+def clear_path(ctx: typer.Context):
+    """清除已保存的默认游戏路径"""
+    app_config = ctx.obj.get("app_config", {})
     if "default_path" in app_config:
         del app_config["default_path"]
         save_app_config(app_config)
@@ -557,115 +632,7 @@ def handle_clear_path(args, app_config):
     else:
         logger.info("没有保存的游戏路径。")
 
-# --- 主函数和 Argparse ---
-
-def main():
-    app_config = load_app_config()
-    default_path = app_config.get("default_path")
-
-    parser = argparse.ArgumentParser(
-        description="鸣潮 (Wuthering Waves) 命令行下载/切换管理器",
-        formatter_class=argparse.RawTextHelpFormatter
-    )
-    
-    path_help = "游戏《Wuthering Waves Game》目录路径。"
-    if default_path:
-        path_help += f"\n(默认: {default_path})"
-    else:
-        path_help += "\n(使用 -p 指定一次后将自动保存)"
-
-    parser.add_argument(
-        "-p", "--path",
-        type=Path,
-        required=False,
-        default=default_path,
-        help=path_help
-    )
-    # ---------------------------------------------
-    
-    subparsers = parser.add_subparsers(dest="command", required=True, help="操作命令")
-
-    # 1. status
-    parser_status = subparsers.add_parser(
-        "status",
-        help="检查当前游戏目录的服务器类型和版本"
-    )
-    parser_status.set_defaults(func=handle_status)
-
-    # 2. sync
-    parser_sync = subparsers.add_parser(
-        "sync",
-        help="[慢速] 校验当前服务器的文件，下载缺失/损坏文件，并烘焙差异文件 (修复/更新)"
-    )
-    parser_sync.set_defaults(func=handle_sync)
-
-    # 3. checkout
-    parser_checkout = subparsers.add_parser(
-        "checkout",
-        help="[快速] 立即切换到另一个服务器 (仅重命名差异文件)"
-    )
-    parser_checkout.add_argument(
-        "server",
-        choices=SERVER_CONFIGS.keys(),
-        help="要切换到的目标服务器"
-    )
-    parser_checkout.add_argument(
-        "--force-sync",
-        action="store_true",
-        help="[可选] 在快速切换完成后，立即强制执行一次 'sync' 校验"
-    )
-    parser_checkout.set_defaults(func=handle_checkout)
-    
-    # 4. download
-    parser_download = subparsers.add_parser(
-        "download",
-        help="[慢速] 下载一个全新的、完整的服务器客户端 (会执行 sync)"
-    )
-    parser_download.add_argument(
-        "server",
-        choices=SERVER_CONFIGS.keys(),
-        help="要下载的目标服务器"
-    )
-    parser_download.set_defaults(func=handle_download)
-    
-    parser_clear = subparsers.add_parser(
-        "clear-path",
-        help="清除已保存的默认游戏路径"
-    )
-    parser_clear.set_defaults(func=handle_clear_path)
-    # --------------------------
-
-    if len(sys.argv) == 1:
-        parser.print_help(sys.stderr)
-        sys.exit(1)
-
-    args = parser.parse_args()
-    
-    if args.command == 'clear-path':
-        args.func(args, app_config)
-        sys.exit(0)
-    # -------------------------------
-
-    if not args.path:
-        # 这个错误只会在用户从未设置过 -p 并且 default_path 为 None 时触发
-        logger.error("错误: 缺少游戏路径。")
-        logger.error(f"请至少使用 -p /path/to/game 运行一次以设置默认路径。")
-        parser.print_help()
-        sys.exit(1)
-    
-    # 确保 args.path 是 Path 对象
-    args.path = Path(args.path)
-
-    # 自动保存新路径
-    if str(args.path.resolve()) != default_path:
-        logger.info(f"设置新的默认游戏路径为: {args.path.resolve()}")
-        app_config["default_path"] = str(args.path.resolve())
-        save_app_config(app_config)
-    # -------------------------------
-
-    args.func(args)
-
 if __name__ == "__main__":
     import certifi
     os.environ["SSL_CERT_FILE"] = certifi.where()
-    main()
+    app()
