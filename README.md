@@ -45,9 +45,11 @@ uv tool install .
 第一次运行时，你需要指定游戏路径（只需指定一次，后续会自动记忆）：
 
 ```bash
-ww status --path "/home/user/Games/Wuthering Waves Game"
+# 创建安装目录(如果你还没有创建游戏目录)
+mkdir -p "$HOME/Games/WutheringWaves" 
+# 初始化路径
+ww -p "$HOME/Games/WutheringWaves" status
 ```
-
 ### 常用命令
 
 #### 1\. 查看状态 (`status`)
@@ -74,6 +76,8 @@ ww checkout global
 ```
 
 > **注意**：如果切换后提示“文件缺失”，请运行 `ww sync` 进行下载修复。
+>
+> 也可以一步到位，运行 `ww checkout cn --force-sync` 同时完成切换和同步。 
 
 #### 3\. 同步与修复 (`sync`)
 
