@@ -129,7 +129,7 @@ ww download cn
 1. **Steam 设置**：
 
       * 添加“非 Steam 游戏”，指向 `/Client/Binaries/Win64/Client-Win64-Shipping.exe`。
-      * 在兼容性中强制使用 `GE-Proton` (参考项目` LutheringLaves` 下载最新 GE-Proton)。
+      * 在兼容性中强制使用 `GE-Proton` (参考项目` LutheringLaves` 下载最新 GE-Proton 或 下面的)。
 
 2. **启动参数**：
     在 Steam 启动选项中添加：
@@ -153,6 +153,7 @@ uv tool uninstall ww-manager
 * [WutheringWavesTool](https://github.com/leck995/WutheringWavesTool)
 * [LutheringLaves](https://github.com/last-live/LutheringLaves)
 * [Wuthering-Waves-Official-Bilibili](https://github.com/Hurry1027/Wuthering-Waves-Official-Bilibili)
+* [GE-Proton](https://github.com/GloriousEggroll/proton-ge-custom/releases/): 下载最新版本的 `GE-Proton` 并解压到 `~/.local/share/Steam/steamapps/common/` 目录下，启动 Steam，在**属性-兼容性**中能找到下载的 `GE-Proton` 即说明配置成功。
 
 <!-- end list -->
 
