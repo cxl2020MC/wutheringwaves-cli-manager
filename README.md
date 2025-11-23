@@ -50,6 +50,7 @@ mkdir -p "$HOME/Games/WutheringWaves"
 # 初始化路径
 ww -p "$HOME/Games/WutheringWaves" status
 ```
+
 ### 常用命令
 
 #### 1\. 查看状态 (`status`)
@@ -77,7 +78,7 @@ ww checkout global
 
 > **注意**：如果切换后提示“文件缺失”，请运行 `ww sync` 进行下载修复。
 >
-> 也可以一步到位，运行 `ww checkout cn --force-sync` 同时完成切换和同步。 
+> 也可以一步到位，运行 `ww checkout cn --force-sync` 同时完成切换和同步。
 
 #### 3\. 同步与修复 (`sync`)
 
@@ -95,6 +96,17 @@ ww sync
 # 下载完整的国服客户端到当前目录（或配置的默认目录）
 ww download cn
 ```
+
+#### 5\. 获取抽空链接 (`log`)
+
+**新功能**: 可以获取抽卡链接，用于导入小程序或者鸣潮机器人。
+
+```bash
+# 使用前需点开 唤取-唤取记录 以更新日志文件
+ww log
+```
+
+> `-o`、`--open`: 获取链接并跳转打开。
 
 ## 💡 最佳实践：如何打造“全家桶”
 
@@ -129,7 +141,7 @@ ww download cn
 1. **Steam 设置**：
 
       * 添加“非 Steam 游戏”，指向 `/Client/Binaries/Win64/Client-Win64-Shipping.exe`。
-      * 在兼容性中强制使用 `GE-Proton` (参考项目` LutheringLaves` 下载最新 GE-Proton)。
+      * 在兼容性中强制使用 `GE-Proton` (参考项目`LutheringLaves` 下载最新 GE-Proton)。
 
 2. **启动参数**：
     在 Steam 启动选项中添加：
@@ -159,4 +171,3 @@ uv tool uninstall ww-manager
 ### 接下来该做什么？
 
 如果有任何报错或者建议，随时通过 **issue** 告诉我！
-

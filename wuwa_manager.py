@@ -14,7 +14,8 @@ from urllib.parse import urljoin, quote
 from enum import Enum
 from typing import Optional
 from typing_extensions import Annotated
-
+import re
+import webbrowser
 import typer
 from tqdm import tqdm
 
@@ -674,6 +675,52 @@ def clear_path(ctx: typer.Context):
         logger.info("已清除保存的游戏路径。")
     else:
         logger.info("没有保存的游戏路径。")
+
+
+@app.command()
+def log(
+    ctx: typer.Context,
+    open_url: Annotated[
+        bool, typer.Option("--open", "-o", help="使用默认浏览器打开链接")
+    ] = False,
+):
+    """从日志获取抽卡分析链接（需先在唤取界面点击）"""
+    game_path = ctx.obj["game_path"]
+    log_path = game_path / "Client/Saved/Logs/Client.log"
+
+    if not log_path.exists():
+        logger.error(f"日志文件未找到: {log_path}")
+        typer.echo("请确认游戏路径设置正确，且游戏已至少运行过一次。")
+        return
+
+    target_url = None
+    keyword = "aki-gm-resources.aki-game"
+    # 匹配 http 或 https 开头，直到遇到双引号结束
+    url_pattern = re.compile(r'https?://[^"]+')
+
+    logger.info(f"正在扫描日志: {log_path.name} ...")
+
+    try:
+        with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
+            for line in f:
+                if keyword.lower() in line.lower():
+                    match = url_pattern.search(line)
+                    if match:
+                        target_url = match.group(0)
+    except Exception as e:
+        logger.error(f"读取日志失败: {e}")
+        return
+
+    if target_url:
+        typer.echo(target_url)
+        if open_url:
+            logger.info("正在使用默认浏览器打开链接...")
+            webbrowser.open(target_url)
+    else:
+        logger.warning("未在日志中找到有效的抽卡链接。")
+        typer.echo(
+            "提示：请先在游戏中打开【唤取】->【历史记录】页面，然后再运行此命令。"
+        )
 
 
 if __name__ == "__main__":
