@@ -1,15 +1,16 @@
 # cli.py
-import logging
 import json
-import webbrowser
+import logging
 import re
+import webbrowser
+from enum import Enum
 from pathlib import Path
 from typing import Optional
-from enum import Enum
+
 import typer
 from typing_extensions import Annotated
 
-from config import load_app_config, save_app_config, APPID_TO_SERVER
+from config import APPID_TO_SERVER, load_app_config, save_app_config
 from core import WGameManager, WWError
 
 # --- 初始化 ---
@@ -56,12 +57,8 @@ def get_game_path(ctx: typer.Context) -> Path:
 @app.callback()
 def main(
     ctx: typer.Context,
-    path: Annotated[
-        Optional[Path], typer.Option("--path", "-p", help="游戏安装目录")
-    ] = None,
-    verbose: Annotated[
-        bool, typer.Option("--verbose", "-v", help="显示详细调试日志")
-    ] = False,
+    path: Annotated[Optional[Path], typer.Option("--path", "-p", help="游戏安装目录")] = None,
+    verbose: Annotated[bool, typer.Option("--verbose", "-v", help="显示详细调试日志")] = False,
 ):
     """
     鸣潮 (Wuthering Waves) CLI 管理器
@@ -141,9 +138,7 @@ def download(ctx: typer.Context, server: ServerType):
 def checkout(
     ctx: typer.Context,
     server: ServerType,
-    force_sync: Annotated[
-        bool, typer.Option("--force-sync", help="切换后强制同步")
-    ] = False,
+    force_sync: Annotated[bool, typer.Option("--force-sync", help="切换后强制同步")] = False,
 ):
     """[快速] 切换服务器"""
     path = get_game_path(ctx)
@@ -158,9 +153,7 @@ def checkout(
 @app.command()
 def log(
     ctx: typer.Context,
-    open_browser: Annotated[
-        bool, typer.Option("--open", "-o", help="使用默认浏览器打开链接")
-    ] = False,
+    open_browser: Annotated[bool, typer.Option("--open", "-o", help="使用默认浏览器打开链接")] = False,
 ):
     """获取抽卡分析链接"""
     path = get_game_path(ctx)

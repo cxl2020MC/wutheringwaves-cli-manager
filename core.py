@@ -1,29 +1,29 @@
 # core.py
-import os
-import shutil
+import gzip
 import hashlib
 import json
-import gzip
 import logging
-import time
+import os
+import shutil
 import threading
-from pathlib import Path
-from urllib.request import urlopen, Request
-from urllib.parse import urljoin, quote
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Optional, List, Dict, Any
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+from urllib.parse import quote, urljoin
+from urllib.request import Request, urlopen
 
-import random
 from rich.progress import (
-    Progress,
-    TextColumn,
     BarColumn,
     DownloadColumn,
-    TransferSpeedColumn,
-    TimeRemainingColumn,
-    TaskID,
+    Progress,
     Task,
+    TaskID,
+    TextColumn,
+    TimeRemainingColumn,
+    TransferSpeedColumn,
 )
+
 from config import SERVER_CONFIGS, SERVER_DIFF_FILES
 
 logger = logging.getLogger("WW_Manager")
@@ -165,9 +165,7 @@ class WGameManager:
         self.server_type = server_type
         self.config = SERVER_CONFIGS[server_type]
 
-        self.md5_cache = MD5Cache(
-            self.game_folder / "wwm_md5_cache.json", self.game_folder
-        )
+        self.md5_cache = MD5Cache(self.game_folder / "wwm_md5_cache.json", self.game_folder)
 
         self._launcher_info = None
         self._cdn_node = None
@@ -207,9 +205,7 @@ class WGameManager:
 
     def _http_get_json(self, url: str) -> Optional[Any]:
         try:
-            req = Request(
-                url, headers={"User-Agent": "WW-Manager/2.0", "Accept-Encoding": "gzip"}
-            )
+            req = Request(url, headers={"User-Agent": "WW-Manager/2.0", "Accept-Encoding": "gzip"})
             with urlopen(req, timeout=10) as rsp:
                 if rsp.status != 200:
                     return None
@@ -319,9 +315,7 @@ class WGameManager:
             return
 
         total_size = sum(t["size"] for t in tasks)
-        logger.info(
-            f"准备下载 {len(tasks)} 个文件，总大小: {total_size / 1024 / 1024:.2f} MB"
-        )
+        logger.info(f"准备下载 {len(tasks)} 个文件，总大小: {total_size / 1024 / 1024:.2f} MB")
 
         max_workers = 8
 
