@@ -56,7 +56,7 @@ uv tool install .
 
 ```bash
 # 创建安装目录(如果你还没有创建游戏目录)
-mkdir -p "$HOME/Games/WutheringWaves" 
+mkdir -p "$HOME/Games/WutheringWaves"
 # 初始化路径
 ww -p "$HOME/Games/WutheringWaves" status
 ```
