@@ -1,5 +1,5 @@
 
-<div align="center"><h1>Wuthering Waves CLI Manager</h1><h3>鸣潮命令行管理器</h3></div>
+<div align="center"><h1>WutheringWaves CLI Manager</h1><h3>鸣潮命令行管理器</h3></div>
 
 
 <div align="center">
