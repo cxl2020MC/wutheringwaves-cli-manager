@@ -15,7 +15,7 @@ from core import WGameManager, WWError
 
 # --- 初始化 ---
 app = typer.Typer(
-    help="鸣潮 (Wuthering Waves) CLI 管理器 v2.0",
+    help="WutheringWaves CLI Manager",
     no_args_is_help=True,
     add_completion=False,
 )
