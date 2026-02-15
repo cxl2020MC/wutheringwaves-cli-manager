@@ -4,7 +4,8 @@
 PROTON_BIN="$HOME/.local/share/Steam/compatibilitytools.d/dwproton-10.0-14/proton"
 
 # 游戏路径
-GAME_EXE="/home/xingjian/.local/share/Steam/steamapps/compatdata/4046059116/pfx/drive_c/Program Files/Hypergryph Launcher/games/Endfield Game/Endfield.exe"
+#GAME_EXE="/home/xingjian/.local/share/Steam/steamapps/compatdata/4046059116/pfx/drive_c/Program Files/Hypergryph Launcher/games/Endfield Game/Endfield.exe"
+GAME_EXE="/home/xingjian/Games/endfield/drive_c/Program Files/Hypergryph Launcher/games/Endfield Game/Endfield.exe"
 
 # steam 游戏目录路径
 export STEAM_COMPAT_DATA_PATH="$HOME/.local/share/Steam/steamapps/compatdata/4046059116"
