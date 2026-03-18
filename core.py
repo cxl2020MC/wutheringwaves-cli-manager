@@ -440,6 +440,60 @@ class WGameManager:
         else:
             logger.info("所有文件校验通过，无需下载。")
 
+    def download_predownload(self):
+        """执行预下载逻辑，将资源下载到 .predownload 临时目录"""
+        index = self.predownload_index
+        if not index:
+            raise WWError("当前服务器未开放预下载，或未能获取到预下载配置。")
+
+        pre_info = self.launcher_info.get("predownload", {})
+        res_base = pre_info.get("config", {}).get("resourcesBasePath", "")
+        res_list = index.get("resource", [])
+
+        if not res_list:
+            logger.info("预下载资源列表为空。")
+            return
+
+        # 创建预下载目录
+        predownload_root = self.game_folder / ".predownload"
+        predownload_root.mkdir(parents=True, exist_ok=True)
+
+        # 保存版本和服务器信息，供之后 apply_predownload 校验使用
+        target_version = pre_info.get("version", "unknown")
+        version_info = {"version": target_version, "server": self.server_type}
+        with open(predownload_root / "predownload_version.json", "w", encoding="utf-8") as f:
+            json.dump(version_info, f, indent=4)
+
+        tasks = []
+        logger.info(f"开始准备预下载资源 (目标版本: {target_version})...")
+
+        for item in res_list:
+            dest_path = predownload_root / item["dest"]
+            expected_size = int(item["size"])
+
+            # 判断是否需要下载
+            need_download = False
+            if not dest_path.exists():
+                need_download = True
+            elif dest_path.stat().st_size != expected_size:
+                need_download = True
+
+            if need_download:
+                url = urljoin(self.cdn_node, f"{res_base}/{item['dest']}")
+                tasks.append(
+                    {
+                        "url": quote(url, safe=":/"),
+                        "path": dest_path,
+                        "size": expected_size,
+                    }
+                )
+
+        if tasks:
+            self._batch_download(tasks)
+            logger.info("预下载资源下载完成！之后可使用 'ww predownload --apply' 命令应用更新。")
+        else:
+            logger.info("所有预下载资源均已存在且校验通过，无需重复下载。")
+
     # 应用预下载
     def apply_predownload(self):
         predownload_root = self.game_folder / ".predownload"
