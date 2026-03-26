@@ -20,6 +20,11 @@ from core import WGameManager, WWError
 __version__ = metadata.version("ww-manager")
 
 
+def parse_version(version_str: str) -> tuple:
+    """版本号"""
+    return tuple(map(int, re.findall(r"\d+", str(version_str))))
+
+
 def check_pypi_version_silent():
     """后台线程执行：检测 PyPI 版本并保存到配置"""
     try:
@@ -28,11 +33,18 @@ def check_pypi_version_silent():
         with urlopen(req, timeout=3) as response:
             data = json.loads(response.read().decode())
             latest_version = data["info"]["version"]
-            # 如果发现新版本，更新本地配置
-            if latest_version != __version__:
-                config = load_app_config()
+
+            latest_v = parse_version(latest_version)
+            current_v = parse_version(__version__)
+
+            config = load_app_config()
+            if latest_v > current_v:
                 config["latest_available_version"] = latest_version
                 save_app_config(config)
+            else:
+                if "latest_available_version" in config:
+                    del config["latest_available_version"]
+                    save_app_config(config)
     except Exception:
         pass
 
@@ -42,8 +54,12 @@ def get_help_text_with_version():
     help_text = f"WutheringWaves CLI Manager (v{__version__})"
     config = load_app_config()
     latest = config.get("latest_available_version")
-    if latest and latest != __version__:
-        help_text += f" [bold yellow](最新版本 {latest} 可用！)[/bold yellow]"
+    if latest:
+        try:
+            if parse_version(latest) > parse_version(__version__):
+                help_text += f" [bold yellow](最新版本 {latest} 可用！)[/bold yellow]"
+        except Exception:
+            pass
     return help_text
 
 
@@ -112,7 +128,13 @@ def main(
     config = load_app_config()
     _ = version
     last_check_version = config.get("latest_available_version")
-    if not last_check_version or last_check_version == __version__:
+
+    try:
+        should_check = not last_check_version or parse_version(last_check_version) <= parse_version(__version__)
+    except Exception:
+        should_check = True
+
+    if should_check:
         threading.Thread(target=check_pypi_version_silent, daemon=True).start()
 
     default_path = config.get("default_path")
@@ -129,7 +151,7 @@ def main(
 
 @app.command()
 def update():
-    """更新 ww-manager 工具"""
+    """更新 ww-manager"""
     typer.echo("开始检测更新环境...")
     current_dir = Path.cwd()
     script_phys_dir = Path(__file__).resolve().parent.parent
