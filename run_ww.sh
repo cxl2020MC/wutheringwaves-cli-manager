@@ -10,20 +10,32 @@ GAME_EXE="$HOME/share/WutheringWaves/Wuthering Waves bilibili/Wuthering Waves Ga
 export STEAM_COMPAT_DATA_PATH="$HOME/.local/share/Steam/steamapps/compatdata/3139039821"
 export STEAM_COMPAT_CLIENT_INSTALL_PATH="$HOME/.local/share/Steam"
 
+export SteamAppId="3139039821"
+export SteamGameId="3139039821"
+
 # 环境变量
-export STEAMDESK=1
-# 用于帧率显示(sudo pacman -S mangohud 安装)
+# export STEAMDECK=1
 export MANGOHUD=1
+export DXVK_ASYNC=1
+
+# FSR 缩放设置
+export WINE_FULLSCREEN_FSR=1
+# 加入锐化强度控制(0最锐-5最柔)
+export WINE_FULLSCREEN_FSR_STRENGTH=2
+export WINE_FULLSCREEN_FSR_CUSTOM_MODE="1600x1000"
 
 # 定义 Steam 内部自带的 Runtime 脚本路径
 STEAM_RUNTIME_SCRIPT="$HOME/.local/share/Steam/ubuntu12_32/steam-runtime/run.sh"
 
-echo "正在启动鸣潮 (使用 Steam Internal Runtime)..."
+GAME_ARGS="-ResX=1600 -ResY=1000 -fullscreen"
 
-# 检查脚本是否存在，存在则使用，不存在则裸奔
+echo "正在启动鸣潮..."
+
+# 检查脚本是否存在，并将 GAME_ARGS 传递给游戏进程
 if [ -f "$STEAM_RUNTIME_SCRIPT" ]; then
-  "$STEAM_RUNTIME_SCRIPT" gamemoderun "$PROTON_BIN" run "$GAME_EXE"
+  echo "已找到 Steam Runtime，正在启动..."
+  "$STEAM_RUNTIME_SCRIPT" gamemoderun "$PROTON_BIN" run "$GAME_EXE" $GAME_ARGS
 else
   echo "警告：未找到 Steam Runtime，过场动画可能黑屏"
-  gamemoderun "$PROTON_BIN" run "$GAME_EXE"
+  gamemoderun "$PROTON_BIN" run "$GAME_EXE" $GAME_ARGS
 fi
