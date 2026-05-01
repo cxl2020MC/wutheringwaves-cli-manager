@@ -220,6 +220,17 @@ ww upadate
 
 ---
 
+### Q4: 登录框无法聚焦输入？
+以 ArchLinux 中通过 Steam 启动的鸣潮为例，按照以下步骤操作即可:
+1. `sudo pacman -S protontricks` 安装 `protontricks`；
+2. 运行 `protontricks --gui`，在弹出的列表里找到鸣潮；
+3. 选择 `Select the default wineprefix -> Run winecfg`;
+4. 此时弹出 wincfg 窗口，在窗口中找到**显示 (Graphics)**栏，下方勾选**虚拟桌面 (Emulate a virtual desktop)** 并自行设置一个分辨率；
+5. 应用退出后重启游戏，此时应该可以正常输入并登录；
+6. 登录完成后，重新运行 `protontricks` 取消虚拟桌面即可。
+
+---
+
 ### 📢 反馈
 任何问题请在 **Issue** 中提出，也欢迎 **PR**。
 
